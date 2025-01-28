@@ -1,0 +1,41 @@
+services:
+  mocksensor:
+    build: ./mocksensor
+    volumes:
+      - ./data/mocksensor:/tmp
+  emqx:
+    image: emqx:5.8.4
+    ports:
+      - "18083:18083"
+    volumes:
+      - ./data/emqx/data:/opt/emqx/data
+      - ./data/emqx/log:/opt/emqx/log
+  telegrafinput:
+    image: telegraf:1.26.3
+    volumes:
+      - ./data/telegrafinput/telegraf.conf:/etc/telegraf/telegraf.conf
+      - ./data/mocksensor:/tmp/mocksensor
+  influxdb:
+    image: influxdb:2.7
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./data/influxdb/data:/var/lib/influxdb2
+      - ./data/influxdb/config:/etc/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=scsuarezg
+      - DOCKER_INFLUXDB_INIT_PASSWORD=smartcampusuis
+      - DOCKER_INFLUXDB_INIT_ORG=smartcampus
+      - DOCKER_INFLUXDB_INIT_BUCKET=iotdata
+      - DOCKER_INFLUXDB_INIT_RETENTION=1w
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=smart-campus-auth-token
+  telegrafoutput:
+    image: telegraf:1.26.3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 20
+    volumes:
+      - ./data/telegrafoutput/telegraf.conf:/etc/telegraf/telegraf.conf
